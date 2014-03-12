@@ -8,7 +8,7 @@ def format_line(line):
 	return clean_line
 
 def transfer_data(query_dict):
-	sorted_query_terms = [query_dict[term].get_mean_normalized_click_count() for term in sorted(query_dict.keys())]
+	sorted_query_terms = [query_dict[term].get_frequency() for term in sorted(query_dict.keys())]
 	vocab = set([term for term in sorted(query_dict.keys())])
 
 	return sorted_query_terms, vocab
@@ -22,7 +22,7 @@ def vectorize_query(query_dict, image_vec, query_data):
 		tmp_list = [0.0] * len_img_vec
 		for qt in qt_list:
 			idx = tmp_keys_list.index(qt.value)
-			tmp_list[idx] = qt.get_normalized_click_count()
+			tmp_list[idx] = 1
 		query_vector[l_idx] = tmp_list
 
 	return query_vector
@@ -33,10 +33,10 @@ if __name__ == '__main__':
 	'''
 	training_file_path = 'TrainClick.txt'
 	training_file = list(open(training_file_path, "r"))
-	#results_file = open('image_vector.txt', 'w')
+	#results_file = open('image_vector3.txt', 'w')
 	#results_file_2 = open('vocab_map.txt', 'w')
 	#results_file_3 = open('image_query_click_counts.txt', 'w')
-	results_file_4 = open('query_vector.txt', 'w')
+	results_file_4 = open('query_vector2.txt', 'w')
 
 	image_ctr = 1
 	current_img = ''
@@ -56,6 +56,8 @@ if __name__ == '__main__':
 	query_tfs = dict()
 	query_dict = dict()
 
+	query_img_ccs = dict()
+
 	vocabulary = set()
 
 	line_ctr = 0
@@ -70,10 +72,14 @@ if __name__ == '__main__':
 		clean_line = format_line(training_file[x])
 		image_id, click_count  = clean_line[0], clean_line[2]
 		query_terms = preprocessor.process_text(clean_line[1].rstrip()) # generates a list of tokens
-		image_cc.append(click_count) # Store click counts for every image-query pair
+		#image_cc.append(click_count) 
 
 		if image_id not in query_vecs:
 			query_vecs[image_id] = list()
+
+		if image_id not in query_img_ccs:
+			query_img_ccs[image_id] = list()
+		query_img_ccs[image_id].append(click_count) # Store click counts for every image-query pair
 
 		term_list = [Term(qt, int(click_count)) for qt in query_terms]
 		query_vecs[image_id].append(term_list)	# For each image, store a list of queries associated
@@ -93,6 +99,7 @@ if __name__ == '__main__':
 			if term not in query_dict:
 				query_dict[term] = Term(term)
 			query_dict[term].add_click_count(int(click_count))
+			query_dict[term].increment_frequency()
 
 	'''
 		vocab_index = list(sorted(vocabulary))
@@ -102,32 +109,43 @@ if __name__ == '__main__':
 		for word_voc in vocab_index:
 			results_file_2.write(word_voc + "\n")
 		results_file_2.close() # Close stream
-0G5LtudP4n5DwQ
 	    # Print out all the image-query click counts
 		for cc in image_cc:
 			results_file_3.write(str(cc) + "\n")
 		results_file_3.close() # Close stream
 	'''
 
+	'''
+		for img in query_img_ccs.keys():
+		output_line = img + '\t'
+		for ccs in query_img_ccs[img]:
+			output_line += ccs + ' '
+		output_line += '\n'
+		results_file_3.write(output_line)
+		results_file_3.close()
+	'''
+
 	# Print out image as vector
 	for img, terms in image_dict.items():
 		for qv_term in query_tfs[img]:	# Print out query as a vector
-			q_output = img
-			q_output += '\t' + str(qv_term) + '\n'
-			#print q_output
+			q_output = img + '\t'
+			for qv_t in qv_term:
+				q_output += ' ' + str(qv_t)
+			q_output += '\n'
 			results_file_4.write(q_output)
 	results_file_4.close()
 
 	'''
-			output_line = img
+		for img, terms in image_dict.items():
+			output_line = img + '\t'
 			for term in terms:
-				output_line += '\t' + str(term)
+				output_line += str(term) + ' '
 			output_line += '\n'
 			results_file.write(output_line)
+		results_file.close()
+		#results_file.close() # Close stream
+		#results_file_4.close()
 	'''
-
-	#results_file.close() # Close stream
-	#results_file_4.close()
 
 	'''
 		image_dict2 = dict()
